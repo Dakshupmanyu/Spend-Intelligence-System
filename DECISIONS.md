@@ -62,3 +62,10 @@ This document records decisions made from the task brief and pasted sample schem
 - B FX month is taken from `posting_date` (fallback `invoice_date`). `invoice_date` can be years before the FX table (e.g. 2018).
 - Malformed CSV lines are skipped and counted; a non-UTF-8 file is retried as cp1252 then latin-1. Blank-ID rows and repeated header rows are dropped with a warning (no ID is ever invented).
 - Embedding model: cache first, then one-time download, then lexical fallback with a warning.
+
+## Reconciliation decisions (patch 2)
+
+- Ties between interchangeable ERP receipts (same supplier, text, amount) are not ambiguous: the tool invoice matches the lowest record id and each receipt is consumed once.
+- A tie between genuinely different ERP rows still marks the tool row DUPLICATE (`ambiguous_policy: match_first`, default) because the purchase total is correct either way; identity keys are not inherited in that case. `ambiguous_policy: skip` restores the old behaviour, which double counts.
+- Tool rows with no PO, or a PO the ERP never saw, use a fallback: normalised supplier similarity >= 85, net amount within max(1.00, 0.5%), description similarity >= 30, invoice date within 365 days of posting date. Supplier AND text are both required. A tool row whose PO exists in the ERP but fits nothing is left as tool-only spend. All thresholds are config keys (`fallback_*`) and are untuned: measure on the real A data.
+- Report fields: `po_matches`, `multi_receipt_matches`, `fallback_matches`, `ambiguous_matched`, `ambiguous`.

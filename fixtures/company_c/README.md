@@ -1,0 +1,1 @@
+This folder intentionally contains no real C data. Copy the synthetic-C fixture generator output here only if you want to rehearse C configuration. The actual blind-test C files must never be committed.

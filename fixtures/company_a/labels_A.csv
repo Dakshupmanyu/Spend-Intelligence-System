@@ -1,0 +1,4 @@
+record_id,category_l1,category_l2,category_l3,supplier_key,item_key
+ERP:A000001,Mining Equipment,Electrical Equipment,Fans,SUP-GOLD-1,ITEM-GOLD-1
+ERP:A000002,Operating Materials,Roof Support,Mesh,SUP-GOLD-2,ITEM-GOLD-2
+ERP:A000003,Operating Materials,MRO,Bearings,SUP-GOLD-3,ITEM-GOLD-3

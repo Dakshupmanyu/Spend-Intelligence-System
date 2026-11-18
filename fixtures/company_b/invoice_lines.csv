@@ -1,0 +1,5 @@
+line_id,source_system,region,invoice_number,invoice_line,posting_date,invoice_date,due_date,paid_date,line_description,material_number,quantity,currency,currency_rate,line_amount,cost_centre,gl_account,gl_account_description,vendor_id,document_type,po_number,po_line,company_code
+B000001,ERP-B1,R1,B-INV-1,1,3/29/2024,3/20/2024,4/20/2024,3/29/2024,INDUSTRIAL PRINTING INK,MAT-1001,2,USD,,120.00,CC1,GL1,INKS,VEND-1001,PV,PO-1,1,CO1
+B000002,ERP-B1,R1,B-INV-2,1,3/29/2024,3/21/2024,4/21/2024,,MECHANICAL BEARING,MAT-1002,4,EUR,1.08,216.00,CC2,GL2,MECHANICAL SPARES,VEND-1002,PV,PO-2,1,CO1
+B000003,ERP-B2,R2,B-INV-3,1,3/29/2024,3/22/2024,4/22/2024,,CANCELLED MATERIAL,MAT-1003,1,USD,,50.00,CC3,GL3,OTHER,VEND-1003,CAN,PO-3,1,CO2
+B000004,ERP-B3,R3,B-INV-4,1,3/29/2024,3/23/2024,4/23/2024,,INDUSTRIAL FILTER,MAT-1004,3,EUR,,108.00,CC4,GL4,FILTERS,VEND-1004,PV,PO-4,1,CO3

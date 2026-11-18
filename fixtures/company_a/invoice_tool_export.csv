@@ -1,0 +1,5 @@
+tool_record_id,invoice_number,invoice_date,supplier_name_as_captured,po_reference,line_text,quantity,gross_amount,vat_rate,currency,status
+TA000001,INV-1001,28-Jun-24,Yarvex,4500000001/10.0,FAN ELECTRIC 22KW,1,1150.00,15%,ZAR,Paid
+TA000002,INV-1002,29-Jun-24,Merden Industrial,PO#4500000002/20,STEEL MESH WELDED,1,575.00,0.15,ZAR,Approved
+TA000003,INV-1003,30-Jun-24,New Supplier,,INDUSTRIAL CLEANING SERVICE,1,230.00,,ZAR,Submitted
+TA000004,INV-1002,29-Jun-24,Merden Industrial,PO#4500000002/20,STEEL MESH WELDED,1,575.00,0.15,ZAR,Paid

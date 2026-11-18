@@ -1,0 +1,36 @@
+# Confidential task data: never commit original company files
+/data/
+*.csv
+!fixtures/**/*.csv
+!outputs/.gitkeep
+!reports/.gitkeep
+
+# Runtime/model/cache artifacts
+.cache/
+.cache_models/
+model_cache/
+*.onnx
+*.onnx_data
+*.joblib
+*.pkl
+*.npy
+*.npz
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+!outputs/*.csv
+!submission/*.csv

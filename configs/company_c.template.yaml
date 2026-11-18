@@ -1,0 +1,101 @@
+company:
+  id: C
+  reporting_currency: USD
+  output_filename: candidate__C.csv
+files:
+  invoices: ../data/company_c/invoice_lines.csv
+  taxonomy: ../data/company_c/taxonomy_C.csv
+csv:
+  encoding: utf-8-sig
+  delimiter: auto
+  on_bad_lines: skip
+sources:
+  invoices:
+    source_name: C
+    record_id_column: REPLACE_WITH_RECORD_ID_COLUMN
+    record_id_prefix: ''
+    amount_column: REPLACE_WITH_AMOUNT_COLUMN
+    amount_type: net
+    currency_column: null
+    currency_required: false
+    default_currency: USD
+    row_fx_rate_column: null
+    date_column: null
+    date_formats:
+    - '%Y-%m-%d'
+    - '%m/%d/%Y'
+    - '%d/%m/%Y'
+    supplier_id_column: null
+    supplier_name_column: null
+    supplier_namespace_columns: []
+    item_id_column: null
+    description_columns:
+    - REPLACE_WITH_DESCRIPTION_COLUMN
+    status_column: null
+    status_required: false
+    status_absent_policy: include_with_warning
+    invoice_number_column: null
+    account_code_column: null
+    account_description_column: null
+    item_namespace_columns: []
+fx:
+  currency_column: currency
+  month_column: month
+  units_per_usd_column: units_per_usd
+  missing_rate_policy: nearest_month
+labels:
+  enabled: false
+  use_as_reference_examples: false
+  use_for_output_directly: false
+taxonomy:
+  columns:
+  - REPLACE_L1_COLUMN
+  - REPLACE_L2_COLUMN
+  - REPLACE_L3_COLUMN
+  - REPLACE_L4_COLUMN
+cleaning:
+  numeric_decimal: .
+  thousands_separator: ','
+  unknown_date_policy: keep_and_flag
+  missing_supplier_policy: unique_per_record
+  missing_item_policy: unique_per_record
+exclusions:
+  cancelled_status_values:
+  - cancelled
+  - canceled
+  - void
+  - reversed
+  non_procurement_keywords: []
+  account_code_exclusions: []
+  document_type_exclusions: []
+classification:
+  use_embeddings: true
+  embedding_backend: fastembed
+  model_name: intfloat/multilingual-e5-small
+  model_cache_dir: ../.cache_models
+  batch_size: 128
+  threads: 2
+  local_files_only: false
+  query_prefix: 'query: '
+  passage_prefix: 'passage: '
+  taxonomy_weight: 1.0
+  label_memory_weight: 0.0
+  lexical_weight: 0.2
+  minimum_confidence: 0.0
+  fallback_to_lexical: true
+  use_label_memory: false
+output:
+  include_columns:
+  - record_id
+  - include
+  - exclusion_reason
+  - supplier_key
+  - item_key
+  - spend
+  - l1
+  - l2
+  - l3
+  - l4
+  - confidence
+  spend_decimals: 2
+  confidence_decimals: 4

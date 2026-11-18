@@ -1,0 +1,4 @@
+transaction_key,amount_usd,currency_code,purchase_date,supplier_ref,supplier_display,sku,narrative,approval_state
+C000001,125.00,USD,2026-01-05,SUP-010,MediSource,KIT-SURG-01,sterile surgical instrument kit,Approved
+C000002,80.00,USD,2026-01-06,SUP-020,GasWorks,OXY-REG-02,oxygen regulator medical gas,Paid
+C000003,42.50,USD,2026-01-07,SUP-030,AirCare,FILTER-HVAC,HVAC air replacement filter,Cancelled

@@ -1,0 +1,167 @@
+company:
+  id: A
+  reporting_currency: ZAR
+  output_filename: candidate__A.csv
+files:
+  erp: ../fixtures/company_a/erp_goods_receipts.csv
+  tool: ../fixtures/company_a/invoice_tool_export.csv
+  labels: ../fixtures/company_a/labels_A.csv
+  taxonomy: ../fixtures/company_a/taxonomy_A.csv
+csv:
+  encoding: utf-8-sig
+  delimiter: ','
+  on_bad_lines: skip
+sources:
+  erp:
+    source_name: ERP
+    record_id_column: line_id
+    record_id_prefix: 'ERP:'
+    amount_column: value_zar
+    amount_type: net
+    currency_column: document_currency
+    currency_required: true
+    date_column: posting_date
+    date_formats:
+    - '%m/%d/%Y'
+    - '%d/%m/%Y'
+    - '%Y-%m-%d'
+    supplier_id_column: vendor_id
+    supplier_name_column: supplier_name
+    supplier_namespace_columns:
+    - source_system
+    item_id_column: material_number
+    description_columns:
+    - material_short_text
+    - service_short_text
+    po_number_column: po_number
+    po_item_column: po_item
+    status_column: null
+    status_required: false
+    status_absent_policy: allow
+    invoice_number_column: null
+    account_description_column: material_type
+    item_namespace_columns:
+    - source_system
+    namespace_required_columns:
+    - source_system
+    item_namespace_required_columns:
+    - source_system
+  tool:
+    source_name: TOOL
+    record_id_column: tool_record_id
+    record_id_prefix: 'TOOL:'
+    amount_column: gross_amount
+    amount_type: gross
+    vat_column: vat_rate
+    default_vat_rate: 0.15
+    currency_column: currency
+    currency_required: true
+    date_column: invoice_date
+    date_formats:
+    - '%d-%b-%y'
+    - '%d-%b-%Y'
+    - '%m/%d/%Y'
+    - '%d/%m/%Y'
+    - '%Y-%m-%d'
+    supplier_id_column: null
+    supplier_name_column: supplier_name_as_captured
+    supplier_namespace_columns:
+    - TOOL
+    item_id_column: null
+    description_columns:
+    - line_text
+    po_reference_column: po_reference
+    status_column: status
+    status_required: true
+    allowed_status_values:
+    - approved
+    - paid
+    status_absent_policy: fail
+    invoice_number_column: invoice_number
+    account_description_column: null
+    item_namespace_columns:
+    - TOOL
+labels:
+  enabled: true
+  join_column: record_id
+  category_columns:
+  - category_l1
+  - category_l2
+  - category_l3
+  supplier_key_column: supplier_key
+  item_key_column: item_key
+  use_as_reference_examples: true
+  use_for_output_directly: false
+taxonomy:
+  columns:
+  - category_l1
+  - category_l2
+  - category_l3
+reconciliation:
+  enabled: true
+  erp_source: erp
+  tool_source: tool
+  erp_po_column: po_number
+  erp_po_item_column: po_item
+  tool_po_reference_column: po_reference
+  amount_absolute_tolerance: 2.0
+  amount_relative_tolerance: 0.02
+  require_unique_best_match: true
+  min_supplier_similarity: 55
+  min_description_similarity: 8
+  invoice_export_deduplication: true
+cleaning:
+  numeric_decimal: .
+  thousands_separator: ','
+  unknown_date_policy: keep_and_flag
+  missing_supplier_policy: unique_per_record
+  missing_item_policy: unique_per_record
+exclusions:
+  cancelled_status_values:
+  - cancelled
+  - canceled
+  - void
+  - reversed
+  non_procurement_keywords:
+  - intercompany
+  - inter-company
+  - royalty
+  - royalties
+  - partner billing
+  - partner billings
+  - financing cost
+  - interest expense
+  - revenue
+  - output tax
+  - vat payable
+  account_description_columns:
+  - account_description
+classification:
+  use_embeddings: false
+  embedding_backend: fastembed
+  model_name: intfloat/multilingual-e5-small
+  model_cache_dir: ../.cache_models
+  batch_size: 128
+  query_prefix: 'query: '
+  passage_prefix: 'passage: '
+  taxonomy_weight: 0.7
+  label_memory_weight: 0.3
+  lexical_weight: 0.2
+  minimum_confidence: 0.0
+  fallback_to_lexical: true
+  use_label_memory: true
+output:
+  include_columns:
+  - record_id
+  - include
+  - exclusion_reason
+  - supplier_key
+  - item_key
+  - spend
+  - l1
+  - l2
+  - l3
+  - l4
+  - confidence
+  spend_decimals: 2
+  confidence_decimals: 4

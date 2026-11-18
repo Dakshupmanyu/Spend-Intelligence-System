@@ -1,0 +1,140 @@
+company:
+  id: B
+  reporting_currency: USD
+  output_filename: candidate__B.csv
+files:
+  invoices: ../data/company_b/invoice_lines.csv
+  fx_rates: ../data/company_b/fx_rates_usd.csv
+  labels: ../data/company_b/seed_labels.csv
+  taxonomy: ../data/company_b/taxonomy_B.csv
+csv:
+  encoding: utf-8-sig
+  delimiter: ','
+  on_bad_lines: skip
+sources:
+  invoices:
+    source_name: B
+    record_id_column: line_id
+    record_id_prefix: ''
+    amount_column: line_amount
+    amount_type: net
+    currency_column: currency
+    currency_required: true
+    row_fx_rate_column: currency_rate
+    # FX month comes from posting_date: invoice_date can be years earlier than the FX table covers.
+    date_column: posting_date
+    fallback_fx_date_column: invoice_date
+    date_formats:
+    - '%m/%d/%Y'
+    - '%d/%m/%Y'
+    - '%Y-%m-%d'
+    supplier_id_column: vendor_id
+    supplier_name_column: null
+    supplier_namespace_columns:
+    - source_system
+    - region
+    - company_code
+    item_id_column: material_number
+    description_columns:
+    - line_description
+    - gl_account_description
+    po_number_column: po_number
+    po_item_column: po_line
+    status_column: null
+    status_required: false
+    status_absent_policy: include_with_warning
+    paid_date_column: paid_date
+    invoice_number_column: invoice_number
+    account_code_column: gl_account
+    account_description_column: gl_account_description
+    document_type_column: document_type
+    item_namespace_columns:
+    - source_system
+    - region
+    - company_code
+    namespace_required_columns: &id001
+    - source_system
+    - region
+    - company_code
+    item_namespace_required_columns: *id001
+fx:
+  currency_column: currency
+  month_column: month
+  units_per_usd_column: units_per_usd
+  missing_rate_policy: nearest_month
+labels:
+  enabled: true
+  join_column: line_id
+  category_columns:
+  - category_l1
+  - category_l2
+  - category_l3
+  include_column: include
+  exclusion_reason_column: exclusion_reason
+  use_as_reference_examples: true
+  use_for_output_directly: false
+taxonomy:
+  columns:
+  - category_l1
+  - category_l2
+  - category_l3
+cleaning:
+  numeric_decimal: .
+  thousands_separator: ','
+  unknown_date_policy: keep_and_flag
+  missing_supplier_policy: unique_per_record
+  missing_item_policy: unique_per_record
+exclusions:
+  cancelled_status_values:
+  - cancelled
+  - canceled
+  - void
+  - reversed
+  cancelled_document_types: []
+  non_procurement_keywords:
+  - intercompany
+  - inter-company
+  - royalty
+  - royalties
+  - partner billing
+  - partner billings
+  - financing cost
+  - interest expense
+  - revenue
+  - output tax
+  - vat payable
+  account_code_exclusions: []
+  account_description_columns:
+  - account_description
+  document_type_exclusions: []
+classification:
+  use_embeddings: true
+  embedding_backend: fastembed
+  model_name: intfloat/multilingual-e5-small
+  model_cache_dir: ../.cache_models
+  batch_size: 128
+  threads: 2
+  local_files_only: false
+  query_prefix: 'query: '
+  passage_prefix: 'passage: '
+  taxonomy_weight: 0.65
+  label_memory_weight: 0.35
+  lexical_weight: 0.2
+  minimum_confidence: 0.0
+  fallback_to_lexical: true
+  use_label_memory: true
+output:
+  include_columns:
+  - record_id
+  - include
+  - exclusion_reason
+  - supplier_key
+  - item_key
+  - spend
+  - l1
+  - l2
+  - l3
+  - l4
+  - confidence
+  spend_decimals: 2
+  confidence_decimals: 4

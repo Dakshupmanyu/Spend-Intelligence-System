@@ -1,0 +1,58 @@
+company:
+  id: C
+  reporting_currency: USD
+  output_filename: candidate__C.csv
+files:
+  invoices: ../fixtures/company_c/synthetic_invoice_lines.csv
+  taxonomy: ../fixtures/company_c/synthetic_taxonomy_C.csv
+csv:
+  encoding: utf-8-sig
+  delimiter: ','
+  on_bad_lines: skip
+sources:
+  invoices:
+    source_name: C
+    record_id_column: transaction_key
+    record_id_prefix: ''
+    amount_column: amount_usd
+    amount_type: net
+    currency_column: currency_code
+    currency_required: true
+    date_column: purchase_date
+    date_formats: ['%Y-%m-%d']
+    supplier_id_column: supplier_ref
+    supplier_name_column: supplier_display
+    supplier_namespace_columns: [supplier_system]
+    item_id_column: sku
+    item_namespace_columns: [supplier_system]
+    description_columns: [narrative, sku]
+    status_column: approval_state
+    status_required: true
+    allowed_status_values: [approved, paid]
+    status_absent_policy: fail
+labels:
+  enabled: false
+  use_as_reference_examples: false
+  use_for_output_directly: false
+taxonomy:
+  columns: [level_one, level_two, level_three, level_four]
+cleaning:
+  numeric_decimal: '.'
+  thousands_separator: ','
+  missing_supplier_policy: unique_per_record
+  missing_item_policy: unique_per_record
+exclusions:
+  cancelled_status_values: [cancelled, canceled, void, reversed]
+  non_procurement_keywords: []
+classification:
+  use_embeddings: false
+  model_name: intfloat/multilingual-e5-small
+  model_cache_dir: ../.cache_models
+  use_label_memory: false
+  taxonomy_weight: 1.0
+  label_memory_weight: 0.0
+  lexical_weight: 0.2
+  fallback_to_lexical: true
+output:
+  spend_decimals: 2
+  confidence_decimals: 4

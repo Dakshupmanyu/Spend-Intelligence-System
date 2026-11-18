@@ -1,0 +1,4 @@
+line_id,include,exclusion_reason,category_l1,category_l2,category_l3
+B000001,1,,Direct Materials,Coatings & Inks,Inks & Varnishes
+B000002,1,,Indirect Materials,MRO,Mechanical Spare Parts
+B000003,0,CANCELLED,,,

@@ -69,3 +69,9 @@ This document records decisions made from the task brief and pasted sample schem
 - A tie between genuinely different ERP rows still marks the tool row DUPLICATE (`ambiguous_policy: match_first`, default) because the purchase total is correct either way; identity keys are not inherited in that case. `ambiguous_policy: skip` restores the old behaviour, which double counts.
 - Tool rows with no PO, or a PO the ERP never saw, use a fallback: normalised supplier similarity >= 85, net amount within max(1.00, 0.5%), description similarity >= 30, invoice date within 365 days of posting date. Supplier AND text are both required. A tool row whose PO exists in the ERP but fits nothing is left as tool-only spend. All thresholds are config keys (`fallback_*`) and are untuned: measure on the real A data.
 - Report fields: `po_matches`, `multi_receipt_matches`, `fallback_matches`, `ambiguous_matched`, `ambiguous`.
+
+## Identity-resolution performance (patch 3)
+
+- Supplier/item fuzzy matching no longer compares all pairs. Names are blocked (shared 6-char prefix, 6-char suffix, whole token, or token head+tail; item blocks also require identical technical tokens), then scored with `rapidfuzz.process.cdist`. Oversized generic blocks use a sorted-neighbourhood window (`BLOCK_CAP`, `SORTED_WINDOW` in `identity.py`).
+- Same decision rules as before (top match >= threshold, 3 points clear of runner-up, mutual nearest). Tests confirm identical clustering to brute force at the production thresholds (97/94/98). At much lower thresholds (e.g. 90) blocking can miss a few pairs, so do not lower the thresholds without re-checking.
+- Measured on synthetic id-less data: 1,000 rows 9.6 s -> 0.2 s; 25,000 rows ~90 min (extrapolated) -> 6 s. A full 25,000-row run in lexical mode took 17 s end to end. Embedding time is not included: measure on the real laptop with the model loaded.

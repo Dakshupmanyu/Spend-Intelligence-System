@@ -183,6 +183,34 @@ def normalize_amounts(
     return output, warnings
 
 
+# Words that make a status "not approved" even if an approved-looking word is also present
+# ("not approved", "unapproved", "approval rejected", "on hold").
+NEGATIVE_STATUS_WORDS = {
+    "not", "un", "unapproved", "reject", "rejected", "decline", "declined", "hold", "pending", "draft",
+    "submitted", "dispute", "disputed", "blocked", "parked", "awaiting", "review",
+}
+
+
+def contains_phrase(normalized_text: str, phrase: str) -> bool:
+    """Whole-word / whole-phrase match on already-normalised text ('tax' must not match 'syntax')."""
+    return bool(phrase) and f" {phrase} " in f" {normalized_text} "
+
+
+def status_is_approved(status: str, allowed: set[str]) -> bool:
+    """Exact allowed value, or an allowed word inside a longer phrase ('approved for payment').
+
+    Negative words win: 'not approved' is never approved. Input is normalised status text.
+    """
+    if not status:
+        return False
+    if status in allowed:
+        return True
+    tokens = set(status.split())
+    if tokens & NEGATIVE_STATUS_WORDS:
+        return False
+    return any(contains_phrase(status, value) for value in allowed)
+
+
 def apply_exclusions(records: pd.DataFrame, source_configs: dict[str, Any], exclusion_config: dict[str, Any]) -> pd.DataFrame:
     output = records.copy()
     include_values: list[int] = []
@@ -196,11 +224,11 @@ def apply_exclusions(records: pd.DataFrame, source_configs: dict[str, Any], excl
         cancelled_doc_types = {str(v).strip().casefold() for v in exclusion_config.get("cancelled_document_types", [])}
         document_type = str(row.get("document_type", "")).strip().casefold()
         absent_policy = source_cfg.get("status_absent_policy", "include_with_warning")
-        if status and status in cancelled:
+        if status and (status in cancelled or any(contains_phrase(status, value) for value in cancelled if value)):
             reason = "CANCELLED"
         elif document_type and document_type in cancelled_doc_types:
             reason = "CANCELLED"
-        elif source_cfg.get("status_required") and status not in allowed:
+        elif source_cfg.get("status_required") and not status_is_approved(status, allowed):
             reason = "NOT_APPROVED"
         elif not status and source_cfg.get("status_required"):
             reason = "NOT_APPROVED"
@@ -216,7 +244,7 @@ def apply_exclusions(records: pd.DataFrame, source_configs: dict[str, Any], excl
             ])
             normalized = normalize_text(haystack)
             keywords = [normalize_text(k) for k in exclusion_config.get("non_procurement_keywords", [])]
-            if any(keyword and keyword in normalized for keyword in keywords):
+            if any(contains_phrase(normalized, keyword) for keyword in keywords):
                 reason = "NON_PROCUREMENT"
             codes = {str(code).strip().casefold() for code in exclusion_config.get("account_code_exclusions", [])}
             if not reason and str(row.get("account_code", "")).strip().casefold() in codes and codes:

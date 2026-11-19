@@ -22,6 +22,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--disable-label-memory", action="store_true", help="Run a strict no-label classification test")
     run.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
 
+    suggest_parser = subparsers.add_parser("suggest-exclusions", help="Rank document types/accounts that look like non-spend")
+    suggest_parser.add_argument("--config", required=True)
+    suggest_parser.add_argument("--output-dir", default="reports")
+    suggest_parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Measure accuracy against golden labels without leakage")
     evaluate_parser.add_argument("--config", required=True)
     evaluate_parser.add_argument("--mode", default="zero-label", choices=["zero-label", "supplier-holdout", "item-holdout"])
@@ -40,6 +45,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config, config_dir = load_config(args.config)
         output_dir = Path(args.output_dir).expanduser().resolve()
+        if args.command == "suggest-exclusions":
+            from .suggest import suggest_exclusions
+
+            result = suggest_exclusions(config, config_dir, output_dir)
+            print(result.head(15).to_string(index=False))
+            print(f"\nFull list: {result.attrs.get('path')} | reversal pairs found: {result.attrs.get('reversal_pairs')}")
+            return 0
         if args.command == "evaluate":
             from .evaluate import evaluate
 

@@ -16,6 +16,7 @@ from .identity import assign_entity_keys, inherit_matched_identity
 from .io import read_table
 from .labels import attach_labels, label_identity_overrides
 from .memory import build_memory_examples
+from .reversals import detect_reversals
 from .normalize import normalize_identifier
 from .reconcile import deduplicate_tool_exports, reconcile_erp_tool
 from .spend import apply_exclusions, build_fx_lookup, normalize_amounts
@@ -163,6 +164,10 @@ def prepare_records(
     unconverted_rows = int(((records["include"] == 1) & records["spend_unconverted"]).sum())
     fx_approximated_rows = int(records.attrs.get("fx_approximated_rows", 0))
 
+    records, reversal_pairs = detect_reversals(records, config.get("reversals", {}), config.get("cleaning", {}))
+    if reversal_pairs:
+        warnings.append(f"{reversal_pairs} reversal pair(s) found; both rows of each pair set to CANCELLED")
+
     reconciliation_metrics: dict[str, int] = {"matched": 0, "unmatched_tool": 0, "ambiguous": 0, "tool_export_duplicates": 0}
     reconciliation_cfg = config.get("reconciliation", {})
     matches: dict[str, str] = {}
@@ -199,6 +204,7 @@ def prepare_records(
         "warnings": warnings,
         "reconciliation_metrics": reconciliation_metrics,
         "unconverted_rows": unconverted_rows,
+        "reversal_pairs": reversal_pairs,
         "fx_approximated_rows": fx_approximated_rows,
     }
 
@@ -269,6 +275,7 @@ def run_pipeline(
         "exclusion_reason_counts": dict(reason_counts),
         "date_parse_failures": int(records["date_parse_failed"].sum()),
         "fx_rows_nearest_month": prepared["fx_approximated_rows"],
+        "reversal_pairs_cancelled": prepared["reversal_pairs"],
         "included_rows_unconverted_spend_zero": prepared["unconverted_rows"],
         "reconciliation": prepared["reconciliation_metrics"],
         "label_reference_examples": int(len(label_examples)),

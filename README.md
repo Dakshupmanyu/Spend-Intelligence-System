@@ -188,3 +188,11 @@ python -m spend_engine evaluate --config configs/company_a.yaml --mode item-hold
 ```
 
 `zero-label` is the number to quote for a company with no labels (like C). Reports are written to `reports/`.
+
+## Finding what is not spend
+
+```
+python -m spend_engine suggest-exclusions --config configs/company_c.yaml
+```
+
+Ranks document types, account codes and suppliers by how much they look like tax, intercompany, royalty, financing, payroll or adjustments (or are mostly negative / blank). Read `reports/exclusion_suggestions__<company>.csv`, then add the values you trust to `exclusions.document_type_exclusions`, `exclusions.account_code_exclusions` or `exclusions.non_procurement_keywords`.

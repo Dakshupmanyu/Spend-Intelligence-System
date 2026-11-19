@@ -13,7 +13,7 @@ CANONICAL_COLUMNS = [
     "record_id", "raw_record_id", "source", "source_namespace", "amount_raw", "amount_type",
     "vat_raw", "currency", "row_fx_rate_raw", "date_raw", "fallback_date_raw", "fx_date_raw", "date_parsed",
     "date_parse_failed", "supplier_id", "supplier_name", "item_id", "item_namespace", "description",
-    "po_number", "po_item", "po_reference", "status", "invoice_number", "account_code",
+    "po_number", "po_item", "po_reference", "status", "invoice_number", "invoice_line", "account_code",
     "account_description", "document_type", "quantity", "uom", "source_row_index",
 ]
 
@@ -79,7 +79,7 @@ def canonicalize_source(
         "vat_column", "currency_column", "row_fx_rate_column", "date_column",
         "fallback_fx_date_column", "supplier_id_column", "supplier_name_column", "item_id_column",
         "po_number_column", "po_item_column", "po_reference_column", "status_column",
-        "paid_date_column", "invoice_number_column", "account_code_column",
+        "paid_date_column", "invoice_number_column", "invoice_line_column", "account_code_column",
         "account_description_column", "document_type_column", "quantity_column", "uom_column",
     ]
     for field in optional_single_fields:
@@ -150,6 +150,7 @@ def canonicalize_source(
             "po_reference": po_reference,
             "status": status,
             "invoice_number": _get(row, source_config.get("invoice_number_column")),
+            "invoice_line": _get(row, source_config.get("invoice_line_column")),
             "account_code": _get(row, source_config.get("account_code_column")),
             "account_description": _get(row, source_config.get("account_description_column")),
             "document_type": _get(row, source_config.get("document_type_column")),

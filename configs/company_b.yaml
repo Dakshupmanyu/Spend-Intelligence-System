@@ -45,6 +45,7 @@ sources:
     status_absent_policy: include_with_warning
     paid_date_column: paid_date
     invoice_number_column: invoice_number
+    invoice_line_column: invoice_line
     account_code_column: gl_account
     account_description_column: gl_account_description
     document_type_column: document_type
@@ -87,6 +88,10 @@ cleaning:
   unknown_date_policy: keep_and_flag
   missing_supplier_policy: unique_per_record
   missing_item_policy: unique_per_record
+reversals:
+  # B000001/B000002-style exact offset pairs on one invoice line: net zero, so neither is a purchase.
+  enabled: true
+  policy: cancel_both
 exclusions:
   cancelled_status_values:
   - cancelled

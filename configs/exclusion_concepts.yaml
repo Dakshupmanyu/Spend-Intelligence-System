@@ -1,0 +1,11 @@
+# Generic words that often mark money that is NOT spend with a third-party supplier.
+# Used ONLY by `suggest-exclusions` to flag rows for a human to decide on. Nothing here excludes a row
+# by itself: copy the ones you trust into `exclusions.non_procurement_keywords` of a company config.
+concepts:
+  tax: [tax, vat, gst, withholding, duty, duties, taxe, impot, iva, impuesto, steuer, mehrwertsteuer, btw]
+  intercompany: [intercompany, inter company, affiliate, group recharge, recharge, ic, interco]
+  royalty: [royalty, royalties, licence fee, license fee]
+  financing: [interest, financing, loan, bank charge, bank charges, bank fee, leasing, zinsen, interets, intereses]
+  revenue_or_partner: [revenue, sales, partner billing, partner billings, customer refund, dividend, dividends]
+  payroll: [payroll, salary, salaries, wages, bonus, pension, gehalt]
+  adjustment: [accrual, provision, reversal, reclass, write off, write-off, adjustment, journal]

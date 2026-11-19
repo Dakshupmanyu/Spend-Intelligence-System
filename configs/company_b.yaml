@@ -71,8 +71,11 @@ labels:
   - category_l3
   include_column: include
   exclusion_reason_column: exclusion_reason
-  use_as_reference_examples: true
-  use_for_output_directly: false
+  memory_sources:
+  - source: invoices
+    file: ../data/company_b/invoice_lines.csv
+  exclude_run_ids: true
+  use_golden_keys: false
 taxonomy:
   columns:
   - category_l1

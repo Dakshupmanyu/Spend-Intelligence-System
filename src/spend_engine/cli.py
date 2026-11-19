@@ -21,6 +21,13 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output-tag", default=None, help="Optional output suffix, e.g. A2 or B2, without changing the company config")
     run.add_argument("--disable-label-memory", action="store_true", help="Run a strict no-label classification test")
     run.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Measure accuracy against golden labels without leakage")
+    evaluate_parser.add_argument("--config", required=True)
+    evaluate_parser.add_argument("--mode", default="zero-label", choices=["zero-label", "supplier-holdout", "item-holdout"])
+    evaluate_parser.add_argument("--folds", type=int, default=3)
+    evaluate_parser.add_argument("--output-dir", default="reports")
+    evaluate_parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return parser
 
 
@@ -33,6 +40,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         config, config_dir = load_config(args.config)
         output_dir = Path(args.output_dir).expanduser().resolve()
+        if args.command == "evaluate":
+            from .evaluate import evaluate
+
+            result = evaluate(config, config_dir, args.mode, args.folds, output_dir)
+            print(json.dumps(result, indent=2))
+            return 0
         report = run_pipeline(
             config=config,
             config_dir=config_dir,

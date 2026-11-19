@@ -178,3 +178,13 @@ The included fixtures are synthetic and small. They check VAT netting, A's examp
 6. A2/B2 performance and the unseen C weighted-by-spend accuracy have not been established by the synthetic tests.
 
 This scaffold is a start-to-run engineering baseline, not a claim that all hidden business rules have already been discovered.
+
+## Measuring accuracy without leakage
+
+```
+python -m spend_engine evaluate --config configs/company_a.yaml --mode zero-label
+python -m spend_engine evaluate --config configs/company_a.yaml --mode supplier-holdout --folds 3
+python -m spend_engine evaluate --config configs/company_a.yaml --mode item-holdout --folds 3
+```
+
+`zero-label` is the number to quote for a company with no labels (like C). Reports are written to `reports/`.

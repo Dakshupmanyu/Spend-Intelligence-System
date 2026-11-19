@@ -118,6 +118,11 @@ def normalize_amounts(
             vat = parse_vat_rate(row.get("vat_raw", ""), float(source_cfg.get("default_vat_rate", 0.15)))
             amount = amount / (1.0 + vat)
 
+        if source_cfg.get("amount_in_reporting_currency"):
+            # e.g. a value_zar column: already in the reporting currency, so no FX and no currency needed.
+            spend_values.append(amount)
+            continue
+
         currency_value = str(row.get("currency", "")).strip().upper()
         currency = currency_value or str(source_cfg.get("default_currency", "")).strip().upper()
         if not currency:

@@ -18,8 +18,10 @@ sources:
     record_id_prefix: 'ERP:'
     amount_column: value_zar
     amount_type: net
+    # value_zar is already net ZAR whatever document_currency says: never convert it again.
+    amount_in_reporting_currency: true
     currency_column: document_currency
-    currency_required: true
+    currency_required: false
     date_column: posting_date
     date_formats:
     - '%m/%d/%Y'
@@ -90,8 +92,13 @@ labels:
   - category_l3
   supplier_key_column: supplier_key
   item_key_column: item_key
-  use_as_reference_examples: true
-  use_for_output_directly: false
+  # Memory is built from the original labelled ERP file. Rows in the current run are never
+  # classified with their own labels (record ids shared with the run are dropped from memory).
+  memory_sources:
+  - source: erp
+    file: ../data/company_a/erp_goods_receipts.csv
+  exclude_run_ids: true
+  use_golden_keys: false
 taxonomy:
   columns:
   - category_l1

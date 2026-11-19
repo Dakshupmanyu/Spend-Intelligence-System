@@ -15,6 +15,7 @@ from .config import resolve_path
 from .identity import assign_entity_keys, inherit_matched_identity
 from .io import read_table
 from .labels import attach_labels, label_identity_overrides
+from .memory import build_memory_examples
 from .normalize import normalize_identifier
 from .reconcile import deduplicate_tool_exports, reconcile_erp_tool
 from .spend import apply_exclusions, build_fx_lookup, normalize_amounts
@@ -67,22 +68,23 @@ def _make_output(records: pd.DataFrame, config: dict[str, Any]) -> pd.DataFrame:
     return output[OUTPUT_COLUMNS]
 
 
-def run_pipeline(
+def prepare_records(
     config: dict[str, Any],
     config_dir: Path,
-    output_dir: Path,
-    candidate_name: str = "candidate",
     disable_label_memory: bool = False,
-    output_tag: str | None = None,
+    attach_run_labels: bool = False,
 ) -> dict[str, Any]:
-    started = time.perf_counter()
+    """Everything up to (not including) classification.
+
+    attach_run_labels=True is for the evaluate command only: it attaches the golden labels to the
+    run rows as an answer key. A normal run never does that.
+    """
     warnings: list[str] = []
     files_cfg = config["files"]
     csv_cfg = config.get("csv", {})
     source_frames: list[pd.DataFrame] = []
     source_configs = config["sources"]
 
-    # Read and canonicalize each configured input exactly once. No whole-file GPU operation exists.
     for source_key, source_cfg in source_configs.items():
         file_path = resolve_path(config_dir, files_cfg.get(source_key))
         if file_path is None:
@@ -101,7 +103,6 @@ def run_pipeline(
         duplicates = records.loc[records["record_id"].duplicated(), "record_id"].head(10).tolist()
         raise PipelineError(f"record_id values must be unique across sources; duplicates include {duplicates}")
 
-    # Runtime taxonomy; there are no hard-coded category names in the engine.
     taxonomy_path = resolve_path(config_dir, files_cfg.get("taxonomy"))
     if taxonomy_path is None:
         raise PipelineError("files.taxonomy is required")
@@ -109,26 +110,39 @@ def run_pipeline(
     taxonomy, taxonomy_warnings = load_taxonomy(taxonomy_path, taxonomy_columns, csv_cfg)
     warnings.extend(taxonomy_warnings)
 
-    # Attach labels by exact record ID only. Labels are reference examples, never copied straight to output.
+    # ---- Labels / memory ----
     labels_path = resolve_path(config_dir, files_cfg.get("labels"))
     label_config = dict(config.get("labels", {}))
     if disable_label_memory:
         label_config["enabled"] = False
-    label_records, label_examples, label_warnings = attach_labels(
-        records, labels_path, label_config, csv_cfg
-    )
-    records = label_records
-    warnings.extend(label_warnings)
-    supplier_overrides, item_overrides, identity_warnings = label_identity_overrides(records)
-    warnings.extend(identity_warnings)
-    if disable_label_memory:
-        # The strict zero-label mode must not reuse either category labels or golden entity keys.
-        supplier_overrides, item_overrides = {}, {}
-        label_examples = pd.DataFrame()
+    label_examples = pd.DataFrame()
+    supplier_overrides: dict[tuple[str, str], str] = {}
+    item_overrides: dict[tuple[str, str], str] = {}
+    for column in ("label_l1", "label_l2", "label_l3", "label_l4", "label_supplier_key", "label_item_key"):
+        records[column] = ""
+
+    if attach_run_labels:
+        answer_key_config = {**label_config, "enabled": True}
+        records, label_examples, label_warnings = attach_labels(records, labels_path, answer_key_config, csv_cfg)
+        warnings.extend(label_warnings)
+    elif label_config.get("enabled") and label_config.get("memory_sources"):
+        # Preferred: memory comes from the original labelled file, not from the rows being classified.
+        label_examples, label_warnings = build_memory_examples(config, config_dir, records)
+        warnings.extend(label_warnings)
+    elif label_config.get("enabled"):
+        warnings.append(
+            "labels.enabled without labels.memory_sources attaches labels to the run rows themselves: "
+            "accuracy on those rows is inflated. Use memory_sources for real runs."
+        )
+        records, label_examples, label_warnings = attach_labels(records, labels_path, label_config, csv_cfg)
+        warnings.extend(label_warnings)
+        if label_config.get("use_golden_keys", False):
+            supplier_overrides, item_overrides, identity_warnings = label_identity_overrides(records)
+            warnings.extend(identity_warnings)
 
     # Spend decisions precede currency conversion so rejected rows do not fail on irrelevant FX.
     records = apply_exclusions(records, source_configs, config.get("exclusions", {}))
-    if not label_examples.empty:
+    if not label_examples.empty and not label_config.get("memory_sources") and not attach_run_labels:
         eligible_reference_ids = set(records.loc[records["include"] == 1, "record_id"].astype(str))
         label_examples = label_examples.loc[label_examples["record_id"].astype(str).isin(eligible_reference_ids)].copy()
 
@@ -149,9 +163,9 @@ def run_pipeline(
     unconverted_rows = int(((records["include"] == 1) & records["spend_unconverted"]).sum())
     fx_approximated_rows = int(records.attrs.get("fx_approximated_rows", 0))
 
-    # Company A-specific reconciliation is activated only when configured.
-    reconciliation_metrics = {"matched": 0, "unmatched_tool": 0, "ambiguous": 0, "tool_export_duplicates": 0}
+    reconciliation_metrics: dict[str, int] = {"matched": 0, "unmatched_tool": 0, "ambiguous": 0, "tool_export_duplicates": 0}
     reconciliation_cfg = config.get("reconciliation", {})
+    matches: dict[str, str] = {}
     if reconciliation_cfg.get("enabled"):
         tool_source_cfg = source_configs.get(reconciliation_cfg.get("tool_source", "tool"), {})
         tool_name = str(tool_source_cfg.get("source_name", "TOOL"))
@@ -164,19 +178,49 @@ def run_pipeline(
             records, reconciliation_cfg, erp_source=erp_name, tool_source=tool_name
         )
         reconciliation_metrics.update(match_metrics)
-    else:
-        matches = {}
 
-    # Deterministic entity IDs. Label-derived keys only seed the matching identities they actually describe.
+    # Entity keys come from the algorithm only. Golden keys are never copied in unless
+    # labels.use_golden_keys is explicitly set (it is off by default because it fakes dedupe quality).
     records = assign_entity_keys(records, config.get("cleaning", {}).get("missing_supplier_policy", "unique_per_record"))
-    records = _apply_identity_overrides(records, supplier_overrides, item_overrides)
+    if supplier_overrides or item_overrides:
+        records = _apply_identity_overrides(records, supplier_overrides, item_overrides)
     if matches:
         records = inherit_matched_identity(records, matches)
 
-    # Classification uses only included records. Excluded rows remain in output with blank taxonomy.
     class_config = dict(config.get("classification", {}))
     if disable_label_memory:
         class_config["use_label_memory"] = False
+    return {
+        "records": records,
+        "taxonomy": taxonomy,
+        "taxonomy_columns": taxonomy_columns,
+        "label_examples": label_examples,
+        "class_config": class_config,
+        "warnings": warnings,
+        "reconciliation_metrics": reconciliation_metrics,
+        "unconverted_rows": unconverted_rows,
+        "fx_approximated_rows": fx_approximated_rows,
+    }
+
+
+def run_pipeline(
+    config: dict[str, Any],
+    config_dir: Path,
+    output_dir: Path,
+    candidate_name: str = "candidate",
+    disable_label_memory: bool = False,
+    output_tag: str | None = None,
+) -> dict[str, Any]:
+    started = time.perf_counter()
+    prepared = prepare_records(config, config_dir, disable_label_memory=disable_label_memory)
+    records = prepared["records"]
+    taxonomy = prepared["taxonomy"]
+    taxonomy_columns = prepared["taxonomy_columns"]
+    label_examples = prepared["label_examples"]
+    class_config = prepared["class_config"]
+    warnings = prepared["warnings"]
+
+    # Classification uses only included records. Excluded rows remain in output with blank taxonomy.
     included_mask = records["include"] == 1
     included = records.loc[included_mask].copy()
     classified, class_warnings = classify_records(
@@ -199,7 +243,6 @@ def run_pipeline(
     final_output = _make_output(records, config)
     validation_metrics = validate_output(records, final_output, taxonomy, taxonomy_columns)
 
-    # Publish only after validations pass. Report is written even when validation succeeds with warnings.
     output_dir.mkdir(parents=True, exist_ok=True)
     company_id = str(config["company"]["id"]).upper()
     file_tag = str(output_tag).strip().upper() if output_tag else company_id
@@ -225,9 +268,9 @@ def run_pipeline(
         "source_rows": {str(key): int(value) for key, value in source_counts.items()},
         "exclusion_reason_counts": dict(reason_counts),
         "date_parse_failures": int(records["date_parse_failed"].sum()),
-        "fx_rows_nearest_month": fx_approximated_rows,
-        "included_rows_unconverted_spend_zero": unconverted_rows,
-        "reconciliation": reconciliation_metrics,
+        "fx_rows_nearest_month": prepared["fx_approximated_rows"],
+        "included_rows_unconverted_spend_zero": prepared["unconverted_rows"],
+        "reconciliation": prepared["reconciliation_metrics"],
         "label_reference_examples": int(len(label_examples)),
         "label_memory_enabled": bool(class_config.get("use_label_memory", True) and not disable_label_memory),
         "warnings": warnings[:200],

@@ -144,6 +144,9 @@ exclusions:
   account_description_columns:
   - account_description
 classification:
+  beam_width: 5            # competing paths kept per level (1 = old greedy descent)
+  lookahead_weight: 0.5    # upper-level nodes are blended with their best leaf below
+  blank_text_prior: true   # rows with no text borrow the majority category of their item, then supplier
   use_embeddings: true
   embedding_backend: fastembed
   model_name: intfloat/multilingual-e5-small

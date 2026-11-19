@@ -91,3 +91,12 @@ This document records decisions made from the task brief and pasted sample schem
 - Status: an allowed word inside a longer phrase counts ("approved for payment"); negative words win ("not approved", "pending approval", "approval rejected"). A cancelled word inside a phrase is CANCELLED.
 - `suggest-exclusions` profiles document type, account code and supplier id (rows, absolute spend, negative share, blank-text share, concept words from `configs/exclusion_concepts.yaml`, sample text) and writes a CSV. It excludes nothing. B's GL descriptions look like codes (BLCN, VAPN), so there is no text signal in the sample: the exclusion rules for B (and C) must be chosen from this report plus the data.
 - Still no semantic (embedding) non-procurement detector. Known gap.
+
+## Classifier: beam search, look-ahead, blank text (patch 6)
+
+- Scoring covers every taxonomy node (prefix) with: semantic similarity to the node path text, word overlap, and optional label-memory similarity. All vectorised; unique texts only. Measured (lexical mode, no model): 25,000 rows x 2,000 leaves in 17 s.
+- Upper levels use a look-ahead: a non-leaf node's score is blended 50/50 with its best descendant leaf (`lookahead_weight`). A beam (`beam_width: 5`) keeps competing paths, so a wrong L1 can still lose to a better L2/L3 path. Test: with `beam_width: 1, lookahead_weight: 0` a text "pump seal kits" lands under the L1 literally named "Pumps"; the default picks the right leaf.
+- Ragged trees (leaf at level 2, others at 4) and 1-level trees work; blank levels stay blank.
+- Rows with no description take the majority path of the same item, then the same supplier (`blank_text_prior`), with confidence <= 0.2. If nothing to borrow they still get a path (all levels are required) with confidence 0.
+- Removed: the per-row leave-one-out subtraction. Label memory no longer contains the rows being classified (see patch 4), so it has nothing to subtract. The legacy `labels.enabled` without `memory_sources` path is flagged as inflated in the run report.
+- Confidence is still the mean node score along the chosen path, not a calibrated probability. Do not read 0.8 as "80% right".
